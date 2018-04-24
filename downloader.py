@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import requests
-from baseconfig import BaseConfig
 import json
 import time
 
@@ -32,7 +31,10 @@ class Downloader(object):
         context = context.decode('utf-8').encode('gbk')
         if response.status_code == 200:
             self.redisDB.RemoveURL(url)
-            self.redisDB.DBHashSet(hashkey='DOWNLOADEDURL', rkey='DownloadedURL', rvalue=url)
+            jsonValue = json.dumps({'url':url,'depth':depth, 'title':title, 'trycount':trycount, 'finishedtime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}, encoding='utf-8')
+            self.redisDB.DBHashSet(hashkey=self.instanceConf.REDIS_FINISHED, rkey=url, rvalue=jsonValue)
+            self.redisDB.RemoveURL(hashkey=self.instanceConf.REDIS_WAITURL,rkey=url)
+            self.redisDB.Enqueue()
         else:
             self.redisDB.Enqueue(url=url, depth=depth, title=title, trycount=trycount+1)
             return
