@@ -34,7 +34,7 @@ class Downloader(object):
             jsonValue = json.dumps({'url':url,'depth':depth, 'title':title, 'trycount':trycount, 'finishedtime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}, encoding='utf-8')
             self.redisDB.DBHashSet(hashkey=self.instanceConf.REDIS_FINISHED, rkey=url, rvalue=jsonValue)
             self.redisDB.RemoveURL(hashkey=self.instanceConf.REDIS_WAITURL,rkey=url)
-            self.redisDB.Enqueue()
+            self.redisDB.EnqueueContext(Url=url,Content=context, Depth=depth, Title=title, Expression='')
         else:
             self.redisDB.Enqueue(url=url, depth=depth, title=title, trycount=trycount+1)
             return
