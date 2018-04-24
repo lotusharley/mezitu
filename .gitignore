@@ -3,6 +3,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+
 # C extensions
 *.so
 
@@ -45,6 +46,8 @@ nosetests.xml
 coverage.xml
 *.cover
 .hypothesis/
+*.pyc
+
 
 # Translations
 *.mo
@@ -99,3 +102,5 @@ ENV/
 
 # mypy
 .mypy_cache/
+.vscode/launch.json
+.vscode/settings.json

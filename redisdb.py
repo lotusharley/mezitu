@@ -17,14 +17,14 @@ class RedisDB(object):
         if url==None:
             pass
         else:
-            if(not self.DBHExist(url)):
+            if not self.DBHExist(url):
                 if depth == 0:
                     self.redisDB.rpush(redisKeyname,redisValue)
                     Logger().info('%s Insert To Queue'%url)
                 else:
                     self.redisDB.lpush(redisKeyname,redisValue)
                     Logger().info('%s Append To Queue'%url)
-                self.DBHashSet(hashkey=self.instanceConf.REDIS_WAITURL, rkey=url, redisValue, 24*60)
+                self.DBHashSet(hashkey=self.instanceConf.REDIS_WAITURL, rkey=url, rvalue=redisValue, timeoutspan=0)
             else:
                 Logger().info('%s URL Already In Queue'%url)
                 
