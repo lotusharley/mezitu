@@ -4,6 +4,8 @@ import json
 from utils import Logger
 from downloader import Downloader
 from redisdb import RedisDB
+from processor import Processor
+import threading
 
 
 class Spider(object):
@@ -13,10 +15,19 @@ class Spider(object):
     def __init__(self, config = None):
         self.instanceConf = config
         self.redisDB = RedisDB(config=self.instanceConf)
-        self.redisDB.Enqueue(config.START_URL, depth=0, title='', trycount=0)
-        for i in range(1, self.instanceConf.DOWNLOADSIZE, 1):
-            downloader = Downloader(self.redisDB,config=config)
-            downloader.start()
-            self.downloaders.append(downloader)
-    
+        for url in config.START_URL:
+            self.redisDB.Enqueue(url, depth=0, title='', trycount=0)
+        t1 = threading.Thread(target=self.startDownloader)
+        t1.setDaemon(False)
+        t1.start()
+        self.downloaders.append(t1)
+            
+    def startDownloader(self):
+        downloader = Downloader(self.redisDB,config=self.instanceConf)
+        downloader.start()
+
+    def stop(self):
+        for t in self.downloaders:
+            t.
+            
     

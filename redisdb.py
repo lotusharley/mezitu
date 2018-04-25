@@ -31,7 +31,7 @@ class RedisDB(object):
     def EnqueueContext(self, Url='', Content='', Depth='', Expression='',Title=''):
         redisKeyname = '%s:%s' % (self.instanceConf.REDIS_NAMESPACE, self.instanceConf.REDIS_URLCONTENT)
         jencoder = json.encoder.JSONEncoder(skipkeys=False, ensure_ascii=True)
-        redisValue = jencoder.encode(json.dumps({'url':Url,'depth':Depth, 'title':Title, 'Content':Content, 'Expression':Expression}, encoding='gbk'))
+        redisValue = jencoder.encode(json.dumps({'url':Url,'depth':Depth, 'title':Title, 'Content':Content, 'Expression':Expression}, encoding='utf-8'))
         self.redisDB.rpush(redisKeyname,redisValue)
 
                 

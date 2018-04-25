@@ -9,4 +9,6 @@ if __name__ == "__main__":
     defconfig = DefaultConfig.defaultconfig()
     Logger().info('Start Spider')
     spiderInstance = Spider(config=defconfig)
+    istr = input()
+    spiderInstance.stop()
     
