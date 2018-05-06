@@ -1,46 +1,67 @@
-# -*- coding: utf-8 -*-
+# -*- coding: UTF-8 -*-
 import requests
 import json
 import time
 from utils import Logger
+import ctypes
+import zmq
+from multiprocessing import Process, Pool, Queue
+import os
+import threading
 
 
-class Downloader(object):
-    instanceConf = None
-    redisDB = None
-    #Start,Running,Wait
-    Status = 'stoped'
-
-    def __init__(self,rdb = None, config = None):
-        self.redisDB = rdb
-        self.instanceConf = config
-
-    def start(self):
-        self.Status='running'
-        while(self.Status):
-            rValue = self.redisDB.GetQuene()
-            if rValue != None:
-                rDict = dict()
-                rDict = json.loads(json.loads(rValue))
-                self.download(rDict['url'], rDict['depth'], rDict['title'], trycount=rDict['trycount'])
-            else:
-                Logger().info('No New URL Wait Wait')
-                time.sleep(5)
-    
-    def download(self, url='', depth=0, title='', trycount=0,headers = None):
-        if headers == None:
-            headers = self.instanceConf.DEFAULT_REQUESTHEADER
-        response = requests.get(url, headers=headers)
-        context = response.content
-        #context = context.decode('utf-8').encode('gbk')
-        if response.status_code == 200:
-            self.redisDB.RemoveURL(url)
-            jsonValue = json.dumps({'url':url,'depth':depth, 'title':title, 'trycount':trycount, 'finishedtime': time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())}, encoding='utf-8')
-            self.redisDB.DBHashSet(hashkey=self.instanceConf.REDIS_FINISHED, rkey=url, rvalue=jsonValue)
-            self.redisDB.RemoveURL(hashkey=self.instanceConf.REDIS_WAITURL,rkey=url)
-            self.redisDB.EnqueueContext(Url=url,Content=context, Depth=depth, Title=title, Expression='')
-            Logger().info('Download %s Finished HTTP Status %s'% (url,response.status_code))
+def startDownloader(lq):
+    from dbOperator import DBOperator
+    from baseconfig import defaultconfig
+    conf = defaultconfig()
+    dbo = DBOperator(config=conf)
+    while True:
+        getSize = conf.DOWNLOADER_QUEUE_SIZE - lq.qsize()
+        if getSize>0:
+            urls = dbo.getURL(maxdataLength=conf.DOWNLOADER_QUEUE_SIZE)
+            print 'Process #%s Get %s URLS FOR Request'%(str(os.getpid()), str(len(urls)))
+            for i in urls:
+                lq.put(urls)
         else:
-            self.redisDB.Enqueue(url=url, depth=depth, title=title, trycount=trycount+1)
-            return
-        
+            print 'Reach Max Queue Size Wait...'
+        time.sleep(15)
+
+
+def requestURL(lq):
+    from baseconfig import defaultconfig
+    while True:
+        target = lq.get()
+        if target == None:
+            time.sleep(10)
+            continue
+        config = defaultconfig()
+        url = target['url']
+        header = config.DEFAULT_REQUESTHEADER
+        if url=='':
+            return 
+        response = requests.get(url=url, header=header)
+        print response.content
+
+
+def start():
+    from baseconfig import defaultconfig
+    config = defaultconfig()
+    localQueue = Queue(config.DOWNLOADER_QUEUE_SIZE)
+    zContext = zmq.Context()
+    zSocket = zContext.socket(zmq.SUB)
+    zSocket.connect('tcp://127.0.0.1:32768')
+    zSocket.setsockopt(zmq.SUBSCRIBE,'')
+    processPool = Pool(processes=config.DOWNLOADER_PROCESS)
+    for i in range(0,2):
+        processPool.apply_async(startDownloader,())
+    for j in range(0,2):
+        processPool.apply_async(requestURL,())
+    print 'Wait Dispatcher Signal...'
+    sRecv = zSocket.recv()
+    if(sRecv == 'end'):
+        print 'Receive Dispatcher End Signal...'
+        processPool.terminate()
+    processPool.join()
+
+if __name__ =='__main__':
+    start()

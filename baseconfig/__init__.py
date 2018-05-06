@@ -1,1 +1,1 @@
-import DefaultConfig
+from DefaultConfig import defaultconfig

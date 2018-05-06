@@ -54,6 +54,13 @@ class RedisDB(object):
             return rvalue
         else:
             return None
+
+    def GetQueueContent(self):
+        rvalue = self.redisDB.lpop(self.instanceConf.REDIS_NAMESPACE + ':' +self.instanceConf.REDIS_URLCONTENT)
+        if rvalue != None:
+            return rvalue
+        else:
+            return None
     
     def RemoveURL(self, hashkey='', rkey=''):
         redisKeyname ='%s:%s' % (self.instanceConf.REDIS_NAMESPACE, hashkey)
